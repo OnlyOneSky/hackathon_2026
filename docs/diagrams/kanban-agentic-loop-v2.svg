@@ -1,0 +1,160 @@
+<svg width="1240" viewBox="0 0 1240 820" role="img" xmlns="http://www.w3.org/2000/svg">
+<title>看板驅動的 Agentic Loop — 五欄看板 v2</title>
+<desc>Five-column kanban flow: Backlog, Spec Drafting (AI), Spec Review (human gate 1), Dev (agentic loop with self-authored gate), PR/Done (human gate 2). Eight numbered legal moves including three red return paths, with connector guardrails listed at the bottom.</desc>
+<defs>
+<style>
+text{font-family:"PingFang TC","Noto Sans TC",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+.card rect{fill:#FFFFFF;stroke:#E2E8F0;stroke-width:1}
+.title{fill:#1F2937;font-size:12.5px;font-weight:500}
+.sub{fill:#6B7280;font-size:10.5px}
+.r-blue rect{fill:#E6F1FB;stroke:#2E7CD6;stroke-width:1}
+.r-blue text{fill:#0C447C;font-size:10px}
+.r-teal rect{fill:#DAF3EF;stroke:#0E9C8A;stroke-width:1}
+.r-teal text{fill:#0B5A50;font-size:10px}
+.r-purple rect{fill:#EEE7FB;stroke:#8B5CF6;stroke-width:1}
+.r-purple text{fill:#4C1D95;font-size:10px}
+.r-green rect{fill:#E4F5E9;stroke:#34A853;stroke-width:1}
+.r-green text{fill:#145A32;font-size:10px}
+.r-red rect{fill:#FDECEC;stroke:#E05252;stroke-width:1}
+.r-red text{fill:#8C1D1D;font-size:10px}
+.hdr{fill:#FFFFFF;font-size:13px;font-weight:600}
+.tag{fill:#FFFFFF;font-size:9.5px;opacity:0.85}
+.badge-h circle{fill:#1D4ED8}
+.badge-a circle{fill:#E8590C}
+.badge-r circle{fill:#DC2626}
+.badge-h text,.badge-a text,.badge-r text{fill:#FFFFFF;font-size:11px;font-weight:600}
+.ret{stroke:#DC2626;stroke-width:1.4;stroke-dasharray:4 3;fill:none}
+.retlbl{fill:#B91C1C;font-size:10px}
+</style>
+<marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#9CA3AF"/></marker>
+<marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#DC2626"/></marker>
+</defs>
+
+<rect x="8" y="8" width="1224" height="804" rx="16" fill="#F4F7FB" stroke="#DDE4EE"/>
+
+<text x="32" y="44" font-size="18" font-weight="700" fill="#1F2937">Agentic Loop 架構 — 五欄看板（v2）</text>
+<text x="32" y="66" font-size="11" fill="#6B7280">卡片由左至右流動 · 兩道人工把關 · ①–⑧ ＝ 8 個合法移動（藍＝人工移卡、橘＝AI 自動、紅＝退回路徑）</text>
+
+<circle cx="704" cy="36" r="5" fill="#1D4ED8"/><text x="714" y="40" font-size="10.5" fill="#6B7280">人工移卡</text>
+<circle cx="794" cy="36" r="5" fill="#E8590C"/><text x="804" y="40" font-size="10.5" fill="#6B7280">AI 自動</text>
+<circle cx="872" cy="36" r="5" fill="#16A34A"/><text x="882" y="40" font-size="10.5" fill="#6B7280">通過</text>
+<circle cx="936" cy="36" r="5" fill="#DC2626"/><text x="946" y="40" font-size="10.5" fill="#6B7280">退回</text>
+<rect x="998" y="31" width="10" height="10" rx="2" fill="#EEE7FB" stroke="#8B5CF6"/><text x="1014" y="40" font-size="10.5" fill="#6B7280">Slack 通知</text>
+<text x="1204" y="60" font-size="10" fill="#9CA3AF" text-anchor="end">v2 · 2026-07-08</text>
+
+<!-- column headers -->
+<rect x="26" y="92" width="212" height="30" rx="6" fill="#475467"/>
+<text x="38" y="112" class="hdr">Backlog</text><text x="230" y="112" class="tag" text-anchor="end">需求</text>
+<rect x="270" y="92" width="212" height="30" rx="6" fill="#E8590C"/>
+<text x="282" y="112" class="hdr">Spec Drafting</text><text x="474" y="112" class="tag" text-anchor="end">AI 自動</text>
+<rect x="514" y="92" width="212" height="30" rx="6" fill="#1D4ED8"/>
+<text x="526" y="112" class="hdr">Spec Review</text><text x="718" y="112" class="tag" text-anchor="end">人工把關 ①</text>
+<rect x="758" y="92" width="212" height="30" rx="6" fill="#7C3AED"/>
+<text x="770" y="112" class="hdr">Dev</text><text x="962" y="112" class="tag" text-anchor="end">移卡觸發 · Agentic Loop</text>
+<rect x="1002" y="92" width="212" height="30" rx="6" fill="#16A34A"/>
+<text x="1014" y="112" class="hdr">PR / Done</text><text x="1206" y="112" class="tag" text-anchor="end">人工把關 ②</text>
+
+<!-- forward arrows with move badges -->
+<line x1="240" y1="168" x2="268" y2="168" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="badge-h"><circle cx="253" cy="168" r="9"/><text x="253" y="172" text-anchor="middle">1</text></g>
+<line x1="484" y1="168" x2="512" y2="168" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="badge-a"><circle cx="497" cy="168" r="9"/><text x="497" y="172" text-anchor="middle">2</text></g>
+<line x1="728" y1="168" x2="756" y2="168" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="badge-h"><circle cx="741" cy="168" r="9"/><text x="741" y="172" text-anchor="middle">3</text></g>
+<line x1="972" y1="168" x2="1000" y2="168" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="badge-a"><circle cx="985" cy="168" r="9"/><text x="985" y="172" text-anchor="middle">6</text></g>
+
+<!-- col 1: Backlog -->
+<g class="card"><rect x="34" y="140" width="196" height="56" rx="8"/></g>
+<text x="44" y="162" class="title">PM 建立需求卡片</text>
+<text x="44" y="180" class="sub">需求寫在卡片描述</text>
+<rect x="34" y="206" width="196" height="30" rx="6" fill="#F3EEFB" stroke="#D6C9F2"/>
+<text x="132" y="225" font-size="10" fill="#6D28D9" text-anchor="middle">Slack 通知 Developer 有新卡</text>
+
+<!-- col 2: Spec Drafting -->
+<g class="card"><rect x="278" y="140" width="196" height="66" rx="8"/></g>
+<text x="288" y="158" font-size="10" fill="#C2410C" font-weight="600">AI Agent · 自動</text>
+<text x="288" y="176" class="title">讀需求 → 產出 Spec</text>
+<text x="288" y="194" class="sub">spec 直接寫回卡片描述</text>
+<g class="card"><rect x="278" y="216" width="196" height="56" rx="8"/></g>
+<text x="288" y="238" class="title">退回重生：依回饋修訂</text>
+<text x="288" y="256" class="sub">前一版 spec ＋ 回饋留言為輸入</text>
+
+<!-- col 3: Spec Review -->
+<g class="card"><rect x="522" y="140" width="196" height="66" rx="8"/></g>
+<text x="532" y="158" font-size="10" fill="#1D4ED8" font-weight="600">人工把關 ①</text>
+<text x="532" y="176" class="title">Developer 審查 Spec</text>
+<text x="532" y="194" class="sub">可直接在卡片上編輯規格</text>
+<g class="card"><rect x="522" y="216" width="196" height="124" rx="8"/></g>
+<text x="532" y="236" font-size="10" fill="#94A3B8">三種出路</text>
+<text x="532" y="260" font-size="11" fill="#15803D">✓ 核准 → 移至 Dev（快照凍結）</text>
+<text x="532" y="288" font-size="11" fill="#C2410C">↺ 退回重生（必附回饋留言）</text>
+<text x="532" y="316" font-size="11" fill="#DC2626">✗ 需求有誤 → 退回 Backlog</text>
+
+<!-- col 4: Dev — agentic loop panel (v2, self-authored gate) -->
+<rect x="758" y="140" width="212" height="470" rx="10" fill="#F5F1FE" stroke="#C4B5FD"/>
+<text x="770" y="161" font-size="12" font-weight="600" fill="#4C1D95">⟳ Agentic Loop</text>
+<text x="958" y="161" font-size="9.5" fill="#6D28D9" text-anchor="end">≤ 6 次 · 20 min</text>
+
+<rect x="766" y="174" width="196" height="104" rx="8" fill="none" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="774" y="189" font-size="9.5" fill="#6D28D9">phase 0 · Gate 合成（≤ 3 次）</text>
+<g class="r-blue"><rect x="774" y="194" width="180" height="24" rx="5"/><text x="864" y="210" text-anchor="middle">測試作者：產出驗收測試</text></g>
+<g class="r-purple"><rect x="774" y="222" width="180" height="24" rx="5"/><text x="864" y="238" text-anchor="middle">驗證：每條 AC ≥ 1 紅測試</text></g>
+<g class="r-teal"><rect x="774" y="250" width="180" height="24" rx="5"/><text x="864" y="266" text-anchor="middle">凍結 gate · 對 Actor 唯讀</text></g>
+
+<g class="r-teal"><rect x="774" y="290" width="180" height="24" rx="5"/><text x="864" y="306" text-anchor="middle">隔離：git worktree</text></g>
+
+<rect x="766" y="324" width="196" height="190" rx="8" fill="none" stroke="#A78BFA" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="774" y="339" font-size="9.5" fill="#6D28D9">actor–critic 迴圈</text>
+<g class="r-blue"><rect x="774" y="346" width="180" height="24" rx="5"/><text x="864" y="362" text-anchor="middle">Actor：程式開發</text></g>
+<g class="r-teal"><rect x="774" y="374" width="180" height="24" rx="5"/><text x="864" y="390" text-anchor="middle">保護路徑：竄改即還原</text></g>
+<g class="r-purple"><rect x="774" y="402" width="180" height="24" rx="5"/><text x="864" y="418" text-anchor="middle">跑測試：凍結 gate 判定</text></g>
+<g class="r-blue"><rect x="774" y="430" width="180" height="24" rx="5"/><text x="864" y="446" text-anchor="middle">QA Critic（唯讀）</text></g>
+<g class="r-blue"><rect x="774" y="458" width="180" height="24" rx="5"/><text x="864" y="474" text-anchor="middle">Security Critic：對照憲法</text></g>
+<path d="M 774 470 C 760 470 760 358 772 358" fill="none" stroke="#9CA3AF" stroke-width="1.3" marker-end="url(#ah)"/>
+<text x="864" y="502" font-size="9.5" fill="#6B7280" text-anchor="middle">任一關失敗 ↻ 重回 Actor</text>
+
+<g class="r-green"><rect x="770" y="524" width="188" height="24" rx="5"/><text x="864" y="540" text-anchor="middle">✓ 全過 → 產出 PR（⑥）</text></g>
+<g class="r-red"><rect x="770" y="554" width="188" height="24" rx="5"/><text x="864" y="570" text-anchor="middle">✗ 達上限 → 退回 Review（⑦）</text></g>
+<text x="864" y="596" font-size="9.5" fill="#6B7280" text-anchor="middle">gate 與憲法對 Actor 唯讀</text>
+
+<!-- col 5: PR/Done -->
+<g class="card"><rect x="1010" y="140" width="196" height="56" rx="8"/></g>
+<text x="1020" y="162" class="title">產出合規 PR</text>
+<text x="1020" y="180" class="sub">附驗收測試清單 · Slack 通知</text>
+<g class="card"><rect x="1010" y="216" width="196" height="66" rx="8"/></g>
+<text x="1020" y="234" font-size="10" fill="#1D4ED8" font-weight="600">人工把關 ②</text>
+<text x="1020" y="252" class="title">Review &amp; Merge</text>
+<text x="1020" y="270" class="sub">不自動合併</text>
+<rect x="1010" y="292" width="196" height="32" rx="8" fill="#16A34A"/>
+<text x="1108" y="313" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Done ✓</text>
+<g class="card"><rect x="1010" y="334" width="196" height="56" rx="8" stroke="#FECACA"/></g>
+<text x="1020" y="356" font-size="11" fill="#DC2626">✗ 實質問題 → 退回 Review</text>
+<text x="1020" y="374" class="sub">回饋隨卡帶回，修規格重跑</text>
+
+<!-- return paths -->
+<path class="ret" d="M 600 342 L 600 642 L 376 642 L 376 276" marker-end="url(#ahr)"/>
+<g class="badge-r"><circle cx="404" cy="642" r="9"/><text x="404" y="646" text-anchor="middle">4</text></g>
+<rect x="416" y="634" width="102" height="16" fill="#F4F7FB"/>
+<text x="420" y="646" class="retlbl">退回重生（附回饋）</text>
+
+<path class="ret" d="M 864 612 L 864 668 L 640 668 L 640 344" marker-end="url(#ahr)"/>
+<g class="badge-r"><circle cx="706" cy="668" r="9"/><text x="706" y="672" text-anchor="middle">7</text></g>
+<rect x="718" y="660" width="138" height="16" fill="#F4F7FB"/>
+<text x="722" y="672" class="retlbl">達上限 → 升級人工（附報告）</text>
+
+<path class="ret" d="M 1108 392 L 1108 694 L 680 694 L 680 344" marker-end="url(#ahr)"/>
+<g class="badge-r"><circle cx="900" cy="694" r="9"/><text x="900" y="698" text-anchor="middle">8</text></g>
+<rect x="912" y="686" width="128" height="16" fill="#F4F7FB"/>
+<text x="916" y="698" class="retlbl">PR 實質退回 → 修規格</text>
+
+<path class="ret" d="M 560 342 L 560 720 L 132 720 L 132 240" marker-end="url(#ahr)"/>
+<g class="badge-r"><circle cx="346" cy="720" r="9"/><text x="346" y="724" text-anchor="middle">5</text></g>
+<rect x="358" y="712" width="108" height="16" fill="#F4F7FB"/>
+<text x="362" y="724" class="retlbl">需求有誤，退回 PM</text>
+
+<!-- guardrails -->
+<rect x="26" y="752" width="1188" height="40" rx="8" fill="#FFFFFF" stroke="#E2E8F0"/>
+<text x="42" y="777" font-size="11" font-weight="600" fill="#334155">連接器護欄（迴圈之外）</text>
+<text x="220" y="777" font-size="11" fill="#64748B">核准快照存證 ・ 非法移動反彈 ・ 角色權限限制移卡 ・ 退回必附回饋留言 ・ 每張卡同時僅一個進行中 run</text>
+</svg>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>看板驅動的 Agentic Loop — Entry Proposal v2</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  @page { size: A4; margin: 0; }
+  html, body { background:#EDEAE3; }
+  body { font-family:"PingFang TC","Noto Sans TC",sans-serif; color:#26332C; }
+  .page {
+    width:210mm; height:297mm; background:#F7F4EE; margin:0 auto;
+    padding:16mm 15mm 14mm; overflow:hidden; page-break-after:always; position:relative;
+  }
+  .page:last-child { page-break-after:auto; }
+
+  .brand { display:flex; align-items:center; gap:8px; margin-bottom:10mm; }
+  .brand .dot { width:9px; height:9px; border-radius:50%; background:#0F6B52; }
+  .brand .name { font-size:12px; font-weight:700; letter-spacing:2.5px; color:#0F6B52; }
+  .brand .div { color:#B9B2A4; font-size:12px; }
+  .brand .track { font-size:11.5px; color:#6B7268; letter-spacing:1px; }
+
+  h1 { font-family:"Noto Serif TC","Songti TC",serif; font-size:31px; line-height:1.32;
+       font-weight:900; color:#14251C; letter-spacing:0.5px; }
+  .subtitle { font-size:14px; color:#3D4A42; margin-top:4mm; letter-spacing:0.5px; }
+  .hero-rule { border:none; border-top:2.2px solid #14251C; margin:7mm 0 6mm; }
+  .hero { font-size:15px; font-weight:700; line-height:1.75; color:#1B2A22; }
+  .hero-rule2 { border:none; border-top:1px solid #DDD6C8; margin:6mm 0 0; }
+
+  .sec { margin-top:9mm; }
+  .sec-h { display:flex; align-items:baseline; gap:10px; margin-bottom:4.5mm; }
+  .sec-h .num { font-family:Menlo,monospace; font-size:14px; font-weight:700; color:#C05621; }
+  .sec-h .t { font-family:"Noto Serif TC","Songti TC",serif; font-size:20.5px; font-weight:900; color:#14251C; letter-spacing:0.5px; }
+  .body-p { font-size:13.5px; line-height:1.85; color:#33403A; margin-bottom:3.5mm; }
+  .body-p b { color:#1B2A22; }
+
+  .pain { display:flex; gap:0; background:#F8EADD; border-left:3.5px solid #C05621;
+          padding:4.2mm 5mm 4.2mm 4mm; margin-bottom:4mm; border-radius:0 6px 6px 0; }
+  .pain .lab { flex:0 0 34px; font-size:11.5px; font-weight:700; color:#C05621; padding-top:2px; }
+  .pain .tx { font-size:12.8px; line-height:1.8; color:#3A4038; }
+  .pain .tx b.lead { color:#B3491A; }
+  .pain .tx code { font-family:Menlo,monospace; font-size:11px; }
+
+  .solution-intro { font-size:13.2px; line-height:1.85; color:#33403A; margin-bottom:4.5mm; }
+  .diagram { width:180mm; margin:0 auto; }
+  .diagram img { width:100%; display:block; }
+  .caption { font-size:11.8px; line-height:1.8; color:#4A554E; margin-top:3mm; }
+
+  .feat3 { display:flex; gap:6mm; margin-top:5.5mm; }
+  .feat { flex:1; }
+  .feat .circ { font-size:16px; color:#14251C; margin-bottom:1.5mm; }
+  .feat .ft { font-family:"Noto Serif TC","Songti TC",serif; font-size:14.5px; font-weight:900; color:#14251C; margin-bottom:1.8mm; }
+  .feat .fx { font-size:11.6px; line-height:1.75; color:#4A554E; }
+  .feat .fx b { color:#2A362F; }
+
+  .tools { margin-top:5.5mm; font-size:12.3px; line-height:1.8; color:#33403A; }
+  .tools .k { font-family:"Noto Serif TC","Songti TC",serif; font-weight:900; color:#14251C; margin-right:6px; }
+  .guard { margin-top:3mm; font-size:11.3px; color:#6B6455; background:#F1ECE1; border:1px solid #E2DACA;
+           border-radius:6px; padding:2.6mm 4mm; }
+  .guard b { color:#8A5A20; }
+
+  .benefit { display:flex; gap:6mm; padding:4.2mm 0; border-bottom:1px solid #DDD6C8; }
+  .benefit:first-of-type { border-top:1.6px solid #14251C; }
+  .benefit .bl { flex:0 0 62px; font-size:13px; font-weight:800; color:#C05621; padding-top:1px; }
+  .benefit .bx { font-size:12.9px; line-height:1.8; color:#33403A; }
+  .benefit .bx b { color:#1B2A22; }
+
+  table.score { width:100%; border-collapse:collapse; margin-top:1mm; }
+  table.score th { font-size:11.5px; text-align:left; color:#F7F4EE; background:#14251C;
+                   padding:2.4mm 3.5mm; font-weight:700; }
+  table.score th:first-child { border-radius:5px 0 0 0; width:26mm; }
+  table.score th:last-child { border-radius:0 5px 0 0; }
+  table.score td { font-size:11.6px; line-height:1.7; color:#3A4038; padding:2.6mm 3.5mm;
+                   border-bottom:1px solid #DDD6C8; vertical-align:top; }
+  table.score td.k { font-weight:800; color:#14251C; }
+
+  .demo3 { display:flex; gap:5mm; margin-top:1mm; }
+  .demo { flex:1; background:#FFFFFF; border:1px solid #E2DACA; border-radius:8px; padding:3.6mm 4mm; }
+  .demo .dn { font-family:Menlo,monospace; font-size:11px; font-weight:700; color:#C05621; margin-bottom:1.4mm; }
+  .demo .dt { font-size:12.6px; font-weight:800; color:#14251C; margin-bottom:1.4mm; }
+  .demo .dx { font-size:11.3px; line-height:1.7; color:#4A554E; }
+
+  .summary { background:#142720; border-radius:14px; padding:9mm 9mm 8mm; margin-top:9mm; }
+  .summary .sh { font-size:12px; font-weight:700; letter-spacing:2px; color:#7FC9A8; margin-bottom:5.5mm; }
+  .sitem { display:flex; gap:6mm; margin-bottom:5.5mm; }
+  .sitem:last-child { margin-bottom:0; }
+  .sitem .sn { font-family:"Noto Serif TC","Songti TC",serif; font-size:24px; font-weight:900; color:#7FC9A8; line-height:1.1; }
+  .sitem .sx { font-size:13.2px; line-height:1.85; color:#DCE9E1; }
+  .sitem .sx b { color:#FFFFFF; }
+
+  .foot { position:absolute; bottom:8mm; left:15mm; right:15mm; display:flex; justify-content:space-between;
+          font-size:9.5px; color:#A39B8B; }
+</style>
+</head>
+<body>
+
+<!-- ================= PAGE 1 ================= -->
+<div class="page">
+  <div class="brand"><span class="dot"></span><span class="name">2026 CATHAY AI HACKATHON</span><span class="div">｜</span><span class="track">AI 工作效率應用挑戰</span></div>
+
+  <h1>看板驅動的 Agentic Loop：<br>金融級安全 AI Agent 研發新範式</h1>
+  <div class="subtitle">以「唯讀憲法」構築跨團隊安全護欄，打造人控方向、AI 奔跑的自動化閉環</div>
+
+  <hr class="hero-rule">
+  <div class="hero">移卡即交付：看板操作觸發 Agentic Loop 閉環運轉。在金融合規護欄下，人只出手三次——提需求、批規格、按合併——其餘交給 AI。</div>
+  <hr class="hero-rule2">
+
+  <div class="sec">
+    <div class="sec-h"><span class="num">01</span><span class="t">情境 — 一個動作，啟動整個開發迴圈</span></div>
+    <p class="body-p">PM 在看板工具（Taiga／Jira／Azure Boards…）把需求卡片從「Backlog」拖進「Spec Drafting」，AI agent 立刻讀取卡片上的需求描述，把<b>可測試的規格草稿寫回卡片</b>；工程師在「Spec Review」直接於卡片上確認或修改規格，<b>把卡片拖進「Dev」的那一刻就是核准</b>——Agentic Loop 隨即接手：寫程式、跑測試、對照安全規則，最後產出一個已審查、合規的 PR，等候人工確認合併。</p>
+    <p class="body-p">整個跨職能團隊——PM、工程師——都以<b>最自然的看板動作</b>驅動 AI 開發迴圈，不需手動啟動任何腳本。規格不對可以退回重生、需求不對可以退回 PM、迴圈失敗會自動升級人工——<b>每一條路都在看板上</b>。</p>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="num">02</span><span class="t">痛點 — 放手自動迭代的三個風險</span></div>
+    <div class="pain"><div class="lab">時間</div><div class="tx"><b class="lead">時間黑洞。</b>就算規格寫得再好，每一輪「跑測試 → 看錯誤 → 修改 → 再複查」仍要工程師<b>手動</b>進行——這才是真正吞掉時間的地方。</div></div>
+    <div class="pain"><div class="lab">安全</div><div class="tx"><b class="lead">安全風險。</b>在銀行裡若放手讓 AI 無限制自跑很危險——它可能為了讓測試通過而偷偷改掉測試（<code>reward hacking</code>，鑽漏洞取巧），或在不知不覺中違反某條安全規則。</div></div>
+    <div class="pain"><div class="lab">流程</div><div class="tx"><b class="lead">流程斷點。</b>agent 迴圈與日常敏捷流程脫節——團隊各自在看板推卡片，卻要另外手動啟動 agent，造成斷點，也讓非工程師角色難以參與。</div></div>
+  </div>
+
+  <div class="foot"><span>看板驅動的 Agentic Loop — Entry Proposal v2</span><span>1 / 4</span></div>
+</div>
+
+<!-- ================= PAGE 2 ================= -->
+<div class="page">
+  <div class="sec" style="margin-top:0;">
+    <div class="sec-h"><span class="num">03</span><span class="t">解法 — 看板為介面，一個受控的 Actor ↔ Critic 迴圈</span></div>
+    <p class="solution-intro">我們的主張很簡單：<b>價值不在模型多聰明，而在模型之外那一圈銀行可稽核的確定性控制碼</b>——看板是唯一介面，連接器強制執行狀態機，AI 只在護欄裡奔跑。</p>
+
+    <div class="diagram"><img src="../diagrams/kanban-agentic-loop-v2.svg" alt="五欄看板 Agentic Loop 架構圖"></div>
+
+    <p class="caption">看板五欄（Backlog → Spec Drafting → Spec Review → Dev → PR/Done）由左至右流動，①–⑧ 共 8 個合法移動：<b>移卡即觸發、退回即回饋</b>。規格審查有三種出路——核准（移卡當下快照凍結）、退回重生（必附回饋）、退回需求（交還 PM）；迴圈達上限的升級（⑦）與 PR 實質退回（⑧）也都回到規格這一關，確保「規格永遠是程式碼存在的理由」。</p>
+
+    <div class="feat3">
+      <div class="feat"><div class="circ">①</div><div class="ft">受控封閉迴圈</div><div class="fx">Actor ↔ Critic <b>最多執行 6 次</b>、共用 20 分鐘上限，收斂即停、達上限即安全升級；驗收測試與憲法對 Actor <b>唯讀、不可竄改</b>，竄改即被偵測並還原。</div></div>
+      <div class="feat"><div class="circ">②</div><div class="ft">兩道人工把關</div><div class="fx">規格核准＝把卡片移進 Dev，<b>當下快照存證</b>；不合意可直接修改後核准、退回重生或退回需求。合併前一定<b>人工 Review &amp; Merge</b>，不自動合併。</div></div>
+      <div class="feat"><div class="circ">③</div><div class="ft">可維護的憲法</div><div class="fx">版本控管的規則集（spec-driven），<b>新增一條即套用</b>至後續所有變更，跨團隊可沿用。</div></div>
+    </div>
+
+    <div class="tools"><span class="k">工具</span>Codex CLI 擔任 Actor（沙箱寫入）＋ 唯讀 Critic agents（QA／Security）＋ Connector 串接看板工具、測試與 Git——<b>所有安全關卡都在我們自己的程式碼裡，不在模型裡</b>。</div>
+
+    <div class="guard"><b>連接器護欄（迴圈之外）：</b>核准快照存證 ・ 非法移動反彈 ・ 角色權限限制移卡 ・ 退回必附回饋留言 ・ 每張卡同時僅一個進行中 run</div>
+  </div>
+
+  <div class="foot"><span>看板驅動的 Agentic Loop — Entry Proposal v2</span><span>2 / 4</span></div>
+</div>
+
+<!-- ================= PAGE 3 ================= -->
+<div class="page">
+  <div class="sec" style="margin-top:0;">
+    <div class="sec-h"><span class="num">04</span><span class="t">預期效益</span></div>
+    <div class="benefit"><div class="bl">自動運轉</div><div class="bx">把手動的「寫 → 測 → 修 → 複查」變成能自動運轉的 agent 迴圈，直接產出一個<b>已審查、合規、通過安全檢核的 PR</b>。</div></div>
+    <div class="benefit"><div class="bl">安全實證</div><div class="bx">迴圈紀律不是簡報主張，而是<b>已可運行的原型</b>：竄改測試被即時偵測並還原、失敗後自我修正收斂、矛盾規格在上限處安全停止——三個情境皆可現場演示，並附離線測試套件。</div></div>
+    <div class="benefit"><div class="bl">可擴散</div><div class="bx">可重用的迴圈樣板、連接器護欄與版本控管的憲法——<b>新團隊帶著自己的看板即可套用</b>，擴散到集團所有開發團隊。</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="num">05</span><span class="t">評分對應</span></div>
+    <table class="score">
+      <tr><th>評分面向</th><th>本方案的對應證據</th></tr>
+      <tr><td class="k">可行性</td><td>可運行原型＋離線測試套件；防 reward hacking（測試／憲法唯讀＋git diff 偵測還原）；迭代與時間上限；不自動合併。</td></tr>
+      <tr><td class="k">AI 工具應用</td><td>Spec／Actor／QA／Security 多 agent 分工；確定性測試先把關、LLM 評審在後，避免模型自我認證。</td></tr>
+      <tr><td class="k">業務價值</td><td>整段手動迭代自動化；規格即核准紀錄（快照存證，可稽核）；憲法一改、全隊生效。</td></tr>
+      <tr><td class="k">創新</td><td>看板即介面——移卡即觸發、退回即回饋，非工程師也能驅動；phase 0 自產驗收 Gate，先凍結靶再開發。</td></tr>
+    </table>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="num">06</span><span class="t">Demo 規劃 — 三幕現場演示</span></div>
+    <div class="demo3">
+      <div class="demo"><div class="dn">Act 1</div><div class="dt">一次就過</div><div class="dx">把卡片移進 Dev，迴圈第一輪收斂，產出合規 PR。</div></div>
+      <div class="demo"><div class="dn">Act 2</div><div class="dt">自我修正</div><div class="dx">刻意核准一份含糊規格——看它先失敗、讀回饋、下一輪修好。</div></div>
+      <div class="demo"><div class="dn">Act 3</div><div class="dt">知所進退</div><div class="dx">矛盾規格永不收斂——達上限安全停止，附失敗報告退回 Spec Review。</div></div>
+    </div>
+  </div>
+
+  <div class="foot"><span>看板驅動的 Agentic Loop — Entry Proposal v2</span><span>3 / 4</span></div>
+</div>
+
+<!-- ================= PAGE 4 ================= -->
+<div class="page">
+  <div class="summary" style="margin-top:2mm;">
+    <div class="sh">3 句話總結</div>
+    <div class="sitem"><div class="sn">1</div><div class="sx">在看板移一張卡，AI 就自動完成規格、開發、測試與安全複查，產出合規 PR——但在銀行裡直接放手讓 AI 無限制自跑很危險：<b>它可能取巧改掉測試，或悄悄違反安全規則</b>。</div></div>
+    <div class="sitem"><div class="sn">2</div><div class="sx">我們交付的是「<b>受控迴圈</b>」：看板五欄、8 個合法移動，規格與合併兩端保留人工把關，驗收測試與憲法對 Actor 唯讀、迭代設上限——規格錯了可退回重生、失敗會安全升級，<b>每一條路都在看板上完成</b>。</div></div>
+    <div class="sitem"><div class="sn">3</div><div class="sx">這套迴圈已是<b>可運行、可演示的原型</b>；「安全的 agent 迴圈」與「可維護的憲法」是可擴散的樣板，集團各團隊帶著自己的看板即可沿用。</div></div>
+  </div>
+
+  <div class="foot"><span>看板驅動的 Agentic Loop — Entry Proposal v2</span><span>4 / 4</span></div>
+</div>
+
+</body>
+</html>
