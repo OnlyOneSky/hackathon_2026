@@ -3,7 +3,7 @@
 # taiga_project ids are filled in after M1 creates the three Taiga projects.
 
 [teams.payments]
-taiga_project = 0  # TODO(M1): set real Taiga project id
+taiga_project = 1
 
 [teams.payments.repos.bankapp]
 url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/bankapp"
@@ -18,7 +18,7 @@ url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/impo
 base = "main"
 
 [teams.lending]
-taiga_project = 0  # TODO(M1)
+taiga_project = 2
 
 [teams.lending.repos.website]
 url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/website"
@@ -33,7 +33,7 @@ url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/impo
 base = "main"
 
 [teams.cards]
-taiga_project = 0  # TODO(M1)
+taiga_project = 3
 
 [teams.cards.repos.bankapp-cards]
 url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/bankapp"
