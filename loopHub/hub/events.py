@@ -21,6 +21,7 @@ class StatusChange:
     from_status: str            # display name
     to_status: str              # display name
     custom_attributes: dict[str, Any]
+    by_username: str
     raw: dict[str, Any]
 
 
@@ -43,5 +44,6 @@ def parse(payload: dict[str, Any]) -> StatusChange | None:
         from_status=status["from"],
         to_status=status["to"],
         custom_attributes=data.get("custom_attributes_values") or {},
+        by_username=(payload.get("by") or {}).get("username") or "",
         raw=payload,
     )

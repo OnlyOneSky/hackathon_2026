@@ -46,7 +46,8 @@ class FakeCtx:
 def ev(frm, to, description=SPEC):
     return StatusChange(story_id=42, story_ref=7, project_id=1, subject="s",
                         description=description, version=1, from_status=frm,
-                        to_status=to, custom_attributes={}, raw={})
+                        to_status=to, custom_attributes={}, by_username="admin",
+                        raw={})
 
 
 def test_move1_enqueues_spec():

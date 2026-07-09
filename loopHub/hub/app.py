@@ -34,6 +34,7 @@ LOOP_RUN = "loop_run"
 DEFAULT_CONSTITUTION = Path(
     "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/skills/constitution.md")
 REVIEWER = "admin"      # demo: 阿哲 is the admin account
+BOT_USERNAME = "loop-bot"
 
 
 def resolve_status_ids(cfg: config_mod.Config) -> dict[int, dict[str, int]]:
@@ -96,28 +97,24 @@ class HubContext:
         return extract_repo(self.taiga, self.cfg, ev.project_id, ev.story_id,
                             self.attr_ids)
 
-    def has_new_feedback(self, ev: StatusChange) -> bool:
-        """Guardrail 4: a comment newer than the current spec's `generated` ts."""
-        m = re.search(r"^generated:\s*(\S+)", ev.description, re.MULTILINE)
-        generated = m.group(1) if m else ""
-        r = self.taiga.c.get(f"/api/v1/history/userstory/{ev.story_id}")
-        if r.status_code != 200:
-            return False
-        for entry in r.json():
-            if entry.get("comment") and (not generated
-                                         or entry["created_at"] > generated):
-                return True
-        return False
-
-    def feedback_comments(self, ev: StatusChange) -> list[str]:
+    def _human_comments_since_spec(self, ev: StatusChange) -> list[str]:
+        """Guardrail 4 source: comments newer than the spec's `generated` ts,
+        excluding loop-hub's own write-backs (they are not reviewer feedback)."""
         m = re.search(r"^generated:\s*(\S+)", ev.description, re.MULTILINE)
         generated = m.group(1) if m else ""
         r = self.taiga.c.get(f"/api/v1/history/userstory/{ev.story_id}")
         if r.status_code != 200:
             return []
         return [e["comment"] for e in r.json()
-                if e.get("comment") and (not generated
-                                         or e["created_at"] > generated)]
+                if e.get("comment")
+                and (e.get("user") or {}).get("username") != BOT_USERNAME
+                and (not generated or e["created_at"] > generated)]
+
+    def has_new_feedback(self, ev: StatusChange) -> bool:
+        return bool(self._human_comments_since_spec(ev))
+
+    def feedback_comments(self, ev: StatusChange) -> list[str]:
+        return self._human_comments_since_spec(ev)
 
 
 def log_worker(queue: JobQueue, job_type: str, stop: threading.Event) -> None:
@@ -178,8 +175,14 @@ def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = Tr
             threading.Thread(target=reconciliation_poller,
                              args=(app.state, cfg, stop),
                              daemon=True, name="poller").start()
-        threading.Thread(target=log_worker, args=(app.state.queue, LOOP_RUN, stop),
-                         daemon=True, name="worker-loop").start()
+            from .loop_runner import loop_run_worker
+            threading.Thread(
+                target=loop_run_worker,
+                args=(cfg, app.state.queue, app.state.taiga, app.state.status_ids, stop),
+                daemon=True, name="worker-loop").start()
+        else:
+            threading.Thread(target=log_worker, args=(app.state.queue, LOOP_RUN, stop),
+                             daemon=True, name="worker-loop").start()
         yield
         stop.set()
 
@@ -208,6 +211,10 @@ def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = Tr
         ev = parse(payload)
         if ev is None:
             return {"ignored": True}
+        if ev.by_username == BOT_USERNAME:
+            # Our own write-backs (bounces, auto-moves) must never re-enter
+            # the state machine — that way lies infinite bounce loops.
+            return {"ignored": True, "reason": "own action"}
         log.info("status change: story #%s %r %s -> %s (project %s)",
                  ev.story_ref, ev.subject, ev.from_status, ev.to_status, ev.project_id)
 
