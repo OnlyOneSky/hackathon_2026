@@ -46,9 +46,16 @@ never on the board.
 
 **Trigger.** Taiga project webhook → `POST /webhooks/taiga`. Handler:
 
-1. Verify `X-TAIGA-WEBHOOK-SIGNATURE` (HMAC-SHA1 of body with shared secret).
+1. Verify `X-TAIGA-WEBHOOK-SIGNATURE` — HMAC-SHA1 hex digest of the **raw
+   request body** with the shared secret, compared via `hmac.compare_digest`
+   (never re-serialize the parsed JSON; never use `==`).
 2. Ignore everything except `action=change, type=userstory` where
-   `change.diff.status.to == "Spec Drafting"`.
+   `change.diff.status.to == "Spec Drafting"`. Note the diff carries status
+   *display names* — loop-hub's config stores status ids AND resolves names at
+   startup, so renaming a column fails loudly instead of silently.
+   The payload's `data` object carries the full story (description,
+   `custom_attributes_values`), so the `repo` field is read straight from the
+   signed payload — no extra GET.
 3. Enqueue `{story_id, project_id}`; return 200 immediately (Taiga retries are
    not guaranteed — never do slow work in the handler).
 4. A 60 s poller reconciles missed events: any card sitting in Spec Drafting
@@ -225,11 +232,20 @@ weaker fit.
 **Setup (hackathon-grade, ~30 min):**
 ```bash
 git clone https://github.com/taigaio/taiga-docker && cd taiga-docker
-cp .env.example .env   # set TAIGA_DOMAIN, TAIGA_SECRET_KEY, POSTGRES_*,
-                       # WEBHOOKS_ENABLED=True
-docker compose up -d
-docker compose exec taiga-back python manage.py createsuperuser
+vi .env                # repo ships a .env — edit it: TAIGA_DOMAIN,
+                       # TAIGA_SECRET_KEY, POSTGRES_* (do not keep defaults)
+vi docker-compose.yml  # in the taiga-back environment block add:
+                       #   WEBHOOKS_ENABLED: "True"
+                       #   WEBHOOKS_BLOCK_PRIVATE_ADDRESS: "False"  # demo only, see below
+./launch-taiga.sh
+./taiga-manage.sh createsuperuser
 ```
+(Webhooks are a taiga-back setting exposed as service env vars in
+docker-compose.yml, not a `.env` key. `WEBHOOKS_BLOCK_PRIVATE_ADDRESS` must be
+False for the single-machine demo because the webhook target
+`host.docker.internal` IS a private address — with blocking on, deliveries
+fail silently. In production, keep blocking on and allowlist the loop-hub
+host instead.)
 Then in the UI:
 1. Create project `bankapp` (Kanban template).
 2. Settings → Attributes → User story statuses → replace defaults with the five
@@ -310,9 +326,13 @@ atomic enough; Taiga's `version` field rejects concurrent edits, which is the
 same optimistic lock that protects against a human editing mid-draft.
 
 The **approval snapshot** (guardrail 1) is the mirror image: on the
-Review→Dev webhook, loop-hub GETs the description, stores it as
-`runs/<run-id>/spec.md`, and passes that frozen file to
-`loopengine.trigger.run()` — the loop never reads the live card.
+Review→Dev webhook, loop-hub takes `data.description` **directly from the
+HMAC-signed webhook payload** — the story state at the exact moment of the
+approval move — stores it as `runs/<run-id>/spec.md`, and passes that frozen
+file to `loopengine.trigger.run()`. A later GET would open a TOCTOU window
+(an edit landing between the move and the fetch would be silently built);
+the payload closes it. Only the reconciliation-poller path (no payload in
+hand) falls back to GET.
 
 ## Demo topology: everything on one machine
 
