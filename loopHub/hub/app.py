@@ -1,22 +1,29 @@
 """loop-hub FastAPI app.
 
-M2 scope: verify signature, filter events, resolve status names→ids at
-startup, enqueue jobs, log-only workers. Agent/loop workers arrive in M4/M6.
+Webhook → verify signature → parse event → transitions.decide() → side effects
+(enqueue job / bounce card / ignore). Workers do the slow Taiga/LLM/loop work.
+A 60 s poller reconciles missed events (GET fallback path only).
 """
 from __future__ import annotations
 
+import json
 import logging
+import re
 import threading
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request, Response
 
 from . import config as config_mod
-from .events import parse
+from . import transitions
+from .events import StatusChange, parse
 from .queue import JobQueue
 from .security import verify_signature
+from .taiga import TaigaClient
+from .workers import spec_draft_worker
 
 log = logging.getLogger("loop-hub")
 
@@ -24,18 +31,16 @@ log = logging.getLogger("loop-hub")
 SPEC_DRAFT = "spec_draft"
 LOOP_RUN = "loop_run"
 
+DEFAULT_CONSTITUTION = Path(
+    "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/skills/constitution.md")
+REVIEWER = "admin"      # demo: 阿哲 is the admin account
+
 
 def resolve_status_ids(cfg: config_mod.Config) -> dict[int, dict[str, int]]:
-    """For each registered project: display name (as configured) -> status id.
-
-    Fails loudly if any configured column name is missing in a project —
-    a renamed column must break startup, not silently drop events.
-    """
-    client = httpx.Client(
-        base_url=cfg.taiga_base_url,
-        headers={"Authorization": f"Bearer {cfg.taiga_token}"},
-        timeout=10,
-    )
+    """Per project: role -> status id. Fails loudly on renamed columns."""
+    client = httpx.Client(base_url=cfg.taiga_base_url,
+                          headers={"Authorization": f"Bearer {cfg.taiga_token}"},
+                          timeout=10)
     out: dict[int, dict[str, int]] = {}
     for team in cfg.teams.values():
         r = client.get("/api/v1/userstory-statuses", params={"project": team.taiga_project})
@@ -45,36 +50,136 @@ def resolve_status_ids(cfg: config_mod.Config) -> dict[int, dict[str, int]]:
         if missing:
             raise RuntimeError(
                 f"project {team.taiga_project} ({team.name}) is missing status "
-                f"column(s) {missing}; found {sorted(by_name)}"
-            )
-        out[team.taiga_project] = {role: by_name[name] for role, name in cfg.status_names.items()}
+                f"column(s) {missing}; found {sorted(by_name)}")
+        out[team.taiga_project] = {role: by_name[name]
+                                   for role, name in cfg.status_names.items()}
     return out
 
 
+def resolve_repo_attr_ids(cfg: config_mod.Config) -> dict[int, int]:
+    """Per project: id of the required `repo` custom attribute."""
+    client = httpx.Client(base_url=cfg.taiga_base_url,
+                          headers={"Authorization": f"Bearer {cfg.taiga_token}"},
+                          timeout=10)
+    out: dict[int, int] = {}
+    for team in cfg.teams.values():
+        r = client.get("/api/v1/userstory-custom-attributes",
+                       params={"project": team.taiga_project})
+        r.raise_for_status()
+        for a in r.json():
+            if a["name"] == "repo":
+                out[team.taiga_project] = a["id"]
+                break
+        else:
+            raise RuntimeError(f"project {team.taiga_project} has no `repo` custom attribute")
+    return out
+
+
+class HubContext:
+    """transitions.Context backed by the queue + Taiga API."""
+
+    def __init__(self, cfg: config_mod.Config, queue: JobQueue,
+                 taiga: TaigaClient, attr_ids: dict[int, int]):
+        self.cfg, self.queue, self.taiga, self.attr_ids = cfg, queue, taiga, attr_ids
+
+    def has_active_job(self, story_id: int) -> bool:
+        return self.queue.has_active(story_id)
+
+    def team_repos(self, project_id: int) -> list[str] | None:
+        team = self.cfg.team_for_project(project_id)
+        return sorted(team.repos) if team else None
+
+    def repo_of(self, ev: StatusChange) -> str | None:
+        # Webhook payloads key custom attrs inconsistently across versions —
+        # read via API (cheap GET; not the approval snapshot, so TOCTOU-safe).
+        from .workers import extract_repo
+        return extract_repo(self.taiga, self.cfg, ev.project_id, ev.story_id,
+                            self.attr_ids)
+
+    def has_new_feedback(self, ev: StatusChange) -> bool:
+        """Guardrail 4: a comment newer than the current spec's `generated` ts."""
+        m = re.search(r"^generated:\s*(\S+)", ev.description, re.MULTILINE)
+        generated = m.group(1) if m else ""
+        r = self.taiga.c.get(f"/api/v1/history/userstory/{ev.story_id}")
+        if r.status_code != 200:
+            return False
+        for entry in r.json():
+            if entry.get("comment") and (not generated
+                                         or entry["created_at"] > generated):
+                return True
+        return False
+
+    def feedback_comments(self, ev: StatusChange) -> list[str]:
+        m = re.search(r"^generated:\s*(\S+)", ev.description, re.MULTILINE)
+        generated = m.group(1) if m else ""
+        r = self.taiga.c.get(f"/api/v1/history/userstory/{ev.story_id}")
+        if r.status_code != 200:
+            return []
+        return [e["comment"] for e in r.json()
+                if e.get("comment") and (not generated
+                                         or e["created_at"] > generated)]
+
+
 def log_worker(queue: JobQueue, job_type: str, stop: threading.Event) -> None:
-    """M2 placeholder worker: claims jobs and logs them."""
+    """Placeholder worker (loop_run until M6)."""
     while not stop.is_set():
         job = queue.claim(job_type)
         if job is None:
             time.sleep(0.5)
             continue
-        log.info("worker[%s] claimed job %s: story=%s payload=%s",
-                 job_type, job["id"], job["story_id"], job["payload"])
+        log.info("worker[%s] claimed job %s: story=%s", job_type, job["id"], job["story_id"])
         queue.finish(job["id"], ok=True)
 
 
-def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = True) -> FastAPI:
+def reconciliation_poller(app_state, cfg: config_mod.Config, stop: threading.Event,
+                          interval: float = 60.0) -> None:
+    """Any card sitting in Spec Drafting with no draft marker and no active job
+    gets enqueued (idempotent; GET fallback path)."""
+    while not stop.is_set():
+        stop.wait(interval)
+        if stop.is_set():
+            return
+        try:
+            taiga: TaigaClient = app_state.taiga
+            for team in cfg.teams.values():
+                drafting_id = app_state.status_ids[team.taiga_project]["spec_drafting"]
+                r = taiga.c.get("/api/v1/userstories",
+                                params={"project": team.taiga_project,
+                                        "status": drafting_id})
+                for us in r.json():
+                    story = taiga.get_story(us["id"])   # GET fallback (no payload in hand)
+                    if story["description"].startswith("---"):
+                        continue                        # draft marker present
+                    if app_state.queue.enqueue(SPEC_DRAFT, us["id"], {"poller": True}):
+                        log.info("poller: re-enqueued story %s stuck in Spec Drafting", us["id"])
+        except Exception:                                # noqa: BLE001
+            log.exception("poller iteration failed")
+
+
+def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = True,
+               llm=None) -> FastAPI:
     cfg = cfg or config_mod.load()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        stop = threading.Event()
         if resolve_statuses:
             app.state.status_ids = resolve_status_ids(cfg)
+            app.state.attr_ids = resolve_repo_attr_ids(cfg)
             log.info("resolved status ids: %s", app.state.status_ids)
-        stop = threading.Event()
-        for jt in (SPEC_DRAFT, LOOP_RUN):
-            threading.Thread(target=log_worker, args=(app.state.queue, jt, stop),
-                             daemon=True, name=f"worker-{jt}").start()
+            app.state.taiga = TaigaClient(cfg.taiga_base_url, cfg.taiga_token)
+            app.state.ctx = HubContext(cfg, app.state.queue, app.state.taiga,
+                                       app.state.attr_ids)
+            threading.Thread(
+                target=spec_draft_worker,
+                args=(cfg, app.state.queue, app.state.taiga, app.state.status_ids,
+                      app.state.attr_ids, DEFAULT_CONSTITUTION, REVIEWER, stop),
+                kwargs={"llm": llm}, daemon=True, name="worker-spec").start()
+            threading.Thread(target=reconciliation_poller,
+                             args=(app.state, cfg, stop),
+                             daemon=True, name="poller").start()
+        threading.Thread(target=log_worker, args=(app.state.queue, LOOP_RUN, stop),
+                         daemon=True, name="worker-loop").start()
         yield
         stop.set()
 
@@ -82,6 +187,7 @@ def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = Tr
     app.state.cfg = cfg
     app.state.queue = JobQueue(cfg.queue_db_path)
     app.state.status_ids = {}
+    app.state.ctx = None
 
     @app.get("/healthz")
     def healthz():
@@ -94,8 +200,6 @@ def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = Tr
         if not verify_signature(raw, cfg.webhook_secret, sig):
             log.warning("webhook rejected: bad signature")
             return Response(status_code=403)
-
-        import json
         try:
             payload = json.loads(raw)
         except ValueError:
@@ -104,25 +208,52 @@ def create_app(cfg: config_mod.Config | None = None, resolve_statuses: bool = Tr
         ev = parse(payload)
         if ev is None:
             return {"ignored": True}
-
-        names = cfg.status_names
         log.info("status change: story #%s %r %s -> %s (project %s)",
                  ev.story_ref, ev.subject, ev.from_status, ev.to_status, ev.project_id)
 
-        if ev.to_status == names["spec_drafting"]:
-            job_id = app.state.queue.enqueue(SPEC_DRAFT, ev.story_id, {"event": ev.raw})
-            if job_id is None:
-                log.info("duplicate spec_draft for story %s dropped (re-entry guard)", ev.story_id)
-                return {"enqueued": False, "reason": "duplicate"}
-            return {"enqueued": True, "job_id": job_id, "job_type": SPEC_DRAFT}
+        ctx = app.state.ctx
+        if ctx is None:                                  # unit-test mode
+            return {"ignored": True, "reason": "no context (test mode)"}
 
-        if ev.from_status == names["spec_review"] and ev.to_status == names["dev"]:
-            job_id = app.state.queue.enqueue(LOOP_RUN, ev.story_id, {"event": ev.raw})
-            if job_id is None:
-                log.info("duplicate loop_run for story %s dropped (re-entry guard)", ev.story_id)
-                return {"enqueued": False, "reason": "duplicate"}
-            return {"enqueued": True, "job_id": job_id, "job_type": LOOP_RUN}
-
-        return {"ignored": True, "reason": "transition not handled in M2"}
+        action = transitions.decide(ev, cfg.status_names, ctx)
+        return apply_action(app, ev, action, ctx)
 
     return app
+
+
+def apply_action(app: FastAPI, ev: StatusChange, action: transitions.Action,
+                 ctx: HubContext) -> dict:
+    if isinstance(action, transitions.Ignore):
+        log.info("ignore: %s", action.reason)
+        return {"ignored": True, "reason": action.reason}
+
+    if isinstance(action, transitions.Bounce):
+        status_id = app.state.status_ids[ev.project_id][action.to_role]
+        try:
+            app.state.taiga.move_with_comment(action.story_id, status_id, action.comment)
+            log.info("bounced story %s -> %s: %s", action.story_id, action.to_role,
+                     action.comment)
+        except Exception:                                # noqa: BLE001
+            log.exception("bounce failed for story %s", action.story_id)
+        return {"bounced": True, "to": action.to_role}
+
+    if isinstance(action, transitions.EnqueueSpec):
+        payload = {"regenerate": action.regenerate}
+        if action.regenerate:
+            payload["feedback"] = ctx.feedback_comments(ev)
+        job_id = app.state.queue.enqueue(SPEC_DRAFT, action.story_id, payload)
+        if job_id is None:
+            return {"enqueued": False, "reason": "duplicate"}
+        return {"enqueued": True, "job_id": job_id, "job_type": SPEC_DRAFT}
+
+    if isinstance(action, transitions.EnqueueRun):
+        job_id = app.state.queue.enqueue(LOOP_RUN, action.story_id, {
+            "spec_snapshot": action.spec_snapshot,       # from the SIGNED payload
+            "repo": action.repo_name,
+            "project_id": ev.project_id,
+        })
+        if job_id is None:
+            return {"enqueued": False, "reason": "duplicate"}
+        return {"enqueued": True, "job_id": job_id, "job_type": LOOP_RUN}
+
+    raise AssertionError(f"unhandled action {action!r}")

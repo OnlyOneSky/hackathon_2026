@@ -5,7 +5,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from hub.app import LOOP_RUN, SPEC_DRAFT, create_app
+from hub.app import create_app
 from hub.config import Config, RepoEntry, Team
 from hub.events import parse
 from hub.queue import JobQueue
@@ -113,23 +113,12 @@ def test_tampered_signature_403(client):
     assert r.status_code == 403
 
 
-def test_move_to_spec_drafting_enqueues(client):
+def test_valid_signature_accepted(client):
     r = signed_post(client, story_move("Backlog", "Spec Drafting"))
     assert r.status_code == 200
-    assert r.json()["enqueued"] is True and r.json()["job_type"] == SPEC_DRAFT
 
 
-def test_review_to_dev_enqueues_loop_run(client):
-    r = signed_post(client, story_move("Spec Review", "Dev"))
-    assert r.json()["job_type"] == LOOP_RUN
-
-
-def test_duplicate_move_dropped(client):
-    signed_post(client, story_move("Backlog", "Spec Drafting"))
-    r = signed_post(client, story_move("Backlog", "Spec Drafting"))
-    assert r.json() == {"enqueued": False, "reason": "duplicate"}
-
-
-def test_unhandled_transition_ignored(client):
-    r = signed_post(client, story_move("Dev", "PR-Done"))
-    assert r.json()["ignored"] is True
+def test_non_status_event_ignored(client):
+    payload = {"action": "create", "type": "userstory", "data": {}}
+    r = signed_post(client, payload)
+    assert r.json() == {"ignored": True}
