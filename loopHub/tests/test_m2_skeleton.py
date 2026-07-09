@@ -118,6 +118,13 @@ def test_valid_signature_accepted(client):
     assert r.status_code == 200
 
 
+def test_own_bot_action_ignored(client):
+    payload = story_move("Backlog", "Dev")
+    payload["by"] = {"username": "loop-bot"}
+    r = signed_post(client, payload)
+    assert r.json() == {"ignored": True, "reason": "own action"}
+
+
 def test_non_status_event_ignored(client):
     payload = {"action": "create", "type": "userstory", "data": {}}
     r = signed_post(client, payload)
