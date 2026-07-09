@@ -18,13 +18,19 @@ Dev 阿哲 owns the spec gate. Repo: `bankapp` on the internal GitHub Enterprise
 A single small service owns everything between the board and the loop:
 
 ```
-Taiga ──webhook──▶ loop-hub (FastAPI, 1 container, 1 VM)
+Taiga ──webhook──▶ loop-hub (FastAPI, one process)
                      ├── verifies signature, filters status changes
                      ├── SQLite job queue (1 worker thread per job type)
                      ├── Spec agent worker      (LLM call, seconds)
                      ├── Loop runner worker     (subprocess: python -m loopengine run)
                      └── Taiga/GitHub connectors (REST)
 ```
+
+Deployment shape: in the demo topology (see below) loop-hub is a plain host
+process next to Taiga's Docker stack, because the Actor shells out to the
+host's authenticated `codex`/`claude` CLIs. In production it becomes one
+container (with the agent CLI baked into the image) on one VM. Same code,
+same interfaces either way.
 
 Why one service: the whole control plane is ~500 lines; splitting it into
 lambdas/queues buys nothing at 8-dev scale and costs debuggability. Load is
