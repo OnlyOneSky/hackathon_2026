@@ -1,0 +1,22 @@
+# loop-hub runtime config. Secrets come from env:
+#   LOOPHUB_WEBHOOK_SECRET  — shared secret configured on every Taiga project webhook
+#   LOOPHUB_TAIGA_TOKEN     — loop-bot auth token (M3+)
+
+[taiga]
+base_url = "http://localhost:9000"
+
+# Column display names as created in M1. loop-hub resolves these to status ids
+# per project at startup and fails loudly if any is missing (rename protection).
+[statuses]
+backlog       = "Backlog"
+spec_drafting = "Spec Drafting"
+spec_review   = "Spec Review"
+dev           = "Dev"
+pr_done       = "PR-Done"
+done          = "Done"
+
+[server]
+port = 8400
+
+[queue]
+db_path = "loop-hub.sqlite3"

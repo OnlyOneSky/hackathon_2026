@@ -1,0 +1,16 @@
+[project]
+name = "loop-hub"
+version = "0.1.0"
+description = "Control plane between the Taiga board and the loopengine agentic loop"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
