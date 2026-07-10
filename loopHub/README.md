@@ -15,6 +15,7 @@ hub/
   security.py    HMAC-SHA1 raw-body signature verify
   queue.py       SQLite job queue (re-entry guard lives here)
   taiga.py       Taiga REST connector (version-locked PATCH write-backs)
+  slack.py       human-gate notifications (spec ready / PR ready / escalated); no-op if unconfigured
   spec_agent.py  spec drafting: prompt assembly, claude CLI call, validator
   workers.py     spec_draft worker
   loop_runner.py loop_run worker: frozen spec → python -m loopengine run → write-back

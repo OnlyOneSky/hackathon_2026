@@ -187,6 +187,27 @@ the reference example: its gate runs `ng test` (vitest/TestBed) and its
 synthesized gate specs merge into `src/tests/` with each PR — the regression
 suite grows automatically.
 
+## 6c. Slack notifications for the human gates (optional)
+
+loop-hub pings a Slack channel at the three moments a human is on the hook:
+spec ready for review (move ②), loop converged / PR ready (move ⑥), and
+escalation (move ⑦). Unset = silent no-op; Slack failures never break
+write-backs.
+
+Setup (~5 min, once per workspace):
+1. https://api.slack.com/apps → Create New App → From scratch.
+2. OAuth & Permissions → Bot Token Scopes → add `chat:write`.
+3. Install to Workspace → copy the `xoxb-…` bot token.
+4. In Slack, create/pick a channel, `/invite @your-app`, and copy the
+   channel ID (channel → View details → bottom of About tab, `C…`).
+5. Append to `loopHub/.env`:
+   ```
+   LOOPHUB_SLACK_TOKEN=xoxb-...
+   LOOPHUB_SLACK_CHANNEL=C0XXXXXXX
+   ```
+6. Restart loop-hub. Verify: drag any repo-tagged card into Spec Drafting —
+   when the draft lands you get "📝 Spec v1 待審查" with a card link.
+
 ## 7. Demo-day preparation checklist
 
 - [ ] Rehearse all three acts (runbook: `loopEngineer/docs/DEMO-RUNBOOK.md`, board-driven section) and record a backup video of each.
