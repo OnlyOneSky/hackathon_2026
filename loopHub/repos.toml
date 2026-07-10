@@ -2,18 +2,22 @@
 # Demo topology: local clones of the loopEngineer demo repos — no GitHub needed.
 # taiga_project ids are filled in after M1 creates the three Taiga projects.
 
-[teams.payments]
+[teams.angular-frontend]
 taiga_project = 1
 
-[teams.payments.repos.bankapp]
+[teams.angular-frontend.repos.hackdemo]
+url  = "/Users/jeffchen/Workspace/Projects/hackDemo"
+base = "main"
+
+[teams.angular-frontend.repos.bankapp]
 url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/bankapp"
 base = "main"
 
-[teams.payments.repos.greenfield-transfer]
+[teams.angular-frontend.repos.greenfield-transfer]
 url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/greenfield-transfer"
 base = "main"
 
-[teams.payments.repos.impossible]
+[teams.angular-frontend.repos.impossible]
 url  = "/Users/jeffchen/Workspace/Projects/Hackathon 2026/loopEngineer/demo/impossible"
 base = "main"
 
