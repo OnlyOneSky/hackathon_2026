@@ -15,9 +15,9 @@ import httpx
 
 BASE = os.environ.get("TAIGA_BASE", "http://localhost:9000")
 WEBHOOK_URL = "http://host.docker.internal:8400/webhooks/taiga"
-COLUMNS = ["Backlog", "Spec Drafting", "Spec Review", "Dev", "PR-Done", "Done"]
-PROJECTS = {          # slug-ish name -> team key in repos.toml
-    "payments-board": "payments",
+COLUMNS = ["To-Do", "Spec Drafting", "Spec Review", "Dev", "PR", "Done"]
+PROJECTS = {          # project name -> team key in repos.toml
+    "Angular Frontend": "angular-frontend",
     "lending-board": "lending",
     "cards-board": "cards",
 }
@@ -76,7 +76,7 @@ def main() -> None:
         for s in statuses:
             if s["name"] not in COLUMNS:
                 c.delete(f"/api/v1/userstory-statuses/{s['id']}",
-                         params={"moveTo": by_name["Backlog"]["id"]})
+                         params={"moveTo": by_name["To-Do"]["id"]})
                 print(f"  - removed default column {s['name']}")
         # fix order + Done closes
         for i, col in enumerate(COLUMNS):

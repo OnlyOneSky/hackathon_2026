@@ -35,7 +35,10 @@ git clone <loopengineer-repo-url> loopEngineer
 **⚠️ Absolute paths to edit on a new machine.** Three files carry paths that
 must point at the new machine's checkout:
 
-1. `loopHub/repos.toml` — every `url = "…/loopEngineer/demo/<repo>"`.
+1. `loopHub/repos.toml` — every repo `url` (the loopEngineer demo repos AND
+   the `hackdemo` entry, which points at a local clone of
+   https://github.com/OnlyOneSky/hackDemo — clone it too: it needs Node 20+
+   and `npm ci`).
 2. `loopHub/hub/app.py` — `DEFAULT_CONSTITUTION` (path to
    `loopEngineer/skills/constitution.md`).
 3. `loopHub/hub/loop_runner.py` — `LOOPENGINE_ROOT`.
@@ -112,8 +115,11 @@ EOF
 
 ## 5. Provision the board (idempotent script)
 
-Creates 3 projects (payments/lending/cards), the 6 columns, the required
-`repo` custom attribute, and the webhook → `http://host.docker.internal:8400/webhooks/taiga`:
+Creates 3 projects (Angular Frontend / lending / cards), the 6 columns
+(`To-Do / Spec Drafting / Spec Review / Dev / PR / Done` — these names must
+match `config.toml` exactly; loop-hub fails loudly at startup otherwise), the
+required `repo` custom attribute, and the webhook →
+`http://host.docker.internal:8400/webhooks/taiga`:
 
 ```bash
 set -a; source .env; set +a
@@ -160,8 +166,26 @@ purpose).
 2. Signature: `curl -s -o /dev/null -w "%{http_code}" -X POST localhost:8400/webhooks/taiga -H 'x-taiga-webhook-signature: bad' -d '{}'` → `403`.
 3. Connector: create any card in the UI, then `uv run --with httpx --with fastapi --with uvicorn python scripts/m3_connector_check.py <story_id>` → 3 ✓ lines.
 4. Webhook path: move any card between columns → hub log shows `status change: …`. If not, check Taiga Project → Settings → Integrations → webhook logs.
-5. Spec agent: create a card **with the `repo` field set** (e.g. `bankapp`), drag Backlog → Spec Drafting → within ~2 min the spec appears in the card and it auto-moves to Spec Review.
-6. Full loop: resolve/delete the spec's Open questions, drag Spec Review → Dev → loop runs (~3-6 min) → card lands in PR-Done (or Spec Review with a failure report).
+5. Spec agent: create a card **with the `repo` field set** (e.g. `bankapp`), drag To-Do → Spec Drafting → within ~2 min the spec appears in the card and it auto-moves to Spec Review.
+6. Full loop: resolve/delete the spec's Open questions, drag Spec Review → Dev → loop runs (~3-6 min) → card lands in PR (or Spec Review with a failure report).
+
+## 6b. Per-repo gate configuration (`loop.toml`)
+
+A target repo may carry a `loop.toml` that loopengine + loop-hub honor:
+
+```toml
+[gate]
+test_command    = "[ -d node_modules ] || npm ci --silent; npx ng test --watch=false"
+gate_mode       = "synthesize"          # test-author agent writes the gate from the spec
+author_dir      = "src/tests/acceptance/"
+protected_paths = ["src/tests/"]        # extends the Actor's read-only set
+```
+
+Without a loop.toml the defaults apply: pytest as the runner, `provided` gate
+(the repo's committed tests are the contract), `tests/` protected. hackDemo is
+the reference example: its gate runs `ng test` (vitest/TestBed) and its
+synthesized gate specs merge into `src/tests/` with each PR — the regression
+suite grows automatically.
 
 ## 7. Demo-day preparation checklist
 

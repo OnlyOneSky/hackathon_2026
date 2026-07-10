@@ -48,10 +48,21 @@ def run_loop_for_job(cfg: Config, taiga: TaigaClient,
     log.info("loop_run %s: story %s repo=%s", run_id, story_id, repo_path)
     engine_runs = LOOPENGINE_ROOT / "runs"
     before = {p.name for p in engine_runs.iterdir()} if engine_runs.is_dir() else set()
+    # the repo's loop.toml may pick gate synthesis (test author writes the gate)
+    gate_mode = "provided"
+    loop_toml = repo_path / "loop.toml"
+    if loop_toml.is_file():
+        import tomllib
+        try:
+            gate_mode = tomllib.loads(loop_toml.read_text()).get("gate", {}) \
+                                .get("gate_mode", "provided")
+        except tomllib.TOMLDecodeError:
+            pass
     try:
         proc = subprocess.run(
             ["python3", "-m", "loopengine", "run",
-             "--spec", str(spec_file), "--repo", str(repo_path), "--agent", "claude"],
+             "--spec", str(spec_file), "--repo", str(repo_path), "--agent", "claude",
+             "--gate", gate_mode],
             cwd=LOOPENGINE_ROOT, capture_output=True, text=True, timeout=RUN_TIMEOUT_S,
         )
     except subprocess.TimeoutExpired:

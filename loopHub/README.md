@@ -18,7 +18,7 @@ hub/
   spec_agent.py  spec drafting: prompt assembly, claude CLI call, validator
   workers.py     spec_draft worker
   loop_runner.py loop_run worker: frozen spec → python -m loopengine run → write-back
-config.toml      Taiga URL, column names, port
+config.toml      Taiga URL, column names (To-Do / Spec Drafting / Spec Review / Dev / PR / Done — shared by ALL projects), port
 repos.toml       team-scoped repo registry (project id → team → repos)
 .env             LOOPHUB_WEBHOOK_SECRET, LOOPHUB_TAIGA_TOKEN, TAIGA_ADMIN_PASSWORD (not committed)
 scripts/
@@ -52,3 +52,9 @@ Tests: `uv run --with fastapi --with httpx --with uvicorn --with pytest python -
   only the reconciliation poller falls back to GET.
 - Board state is reset per demo by moving cards, not deleting: the history
   (comments) is part of the demo story.
+- Column display names are GLOBAL config: renaming a column on one board means
+  renaming it on all boards + config.toml, else startup resolution fails (by
+  design). Current names: To-Do / Spec Drafting / Spec Review / Dev / PR / Done.
+- Per-repo gate config lives in the target repo's loop.toml ([gate]
+  test_command / gate_mode / author_dir / protected_paths) — see SETUP.md §6b.
+  loop-hub passes gate_mode through to `loopengine run --gate`.
