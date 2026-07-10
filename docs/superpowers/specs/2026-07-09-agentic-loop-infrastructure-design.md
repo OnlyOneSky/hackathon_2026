@@ -361,6 +361,24 @@ Pre-solved gotchas:
 
 ## Revisit as it grows
 
+- **Structured challenge (v2 idea, deliberately not in v1).** With
+  `--gate synthesize`, the test-author agent and the Actor can legitimately
+  disagree on an ambiguous AC (e.g. inclusive vs exclusive threshold): the
+  Actor's code satisfies its reading of the spec but fails the frozen gate.
+  v1's behavior: the Actor conforms to the gate (the gate is the contract), or
+  the run caps out and escalates. The v2 improvement is a **formal challenge
+  move**: instead of burning iterations, the Actor files
+  `challenge: {ac_id, test_id, spec_quote, conflict, proposed_reading}` and the
+  run escalates *immediately* to Spec Review with that challenge as the failure
+  report on the card. The human resolves the ambiguity, amends the spec,
+  re-approves → fresh run. Rules that keep it safe: the two agents never
+  negotiate directly (agent-to-agent "dispute resolution" reopens reward
+  hacking — the Actor would just talk the gate into weakening); the gate stays
+  frozen and read-only; the human verdict is the only authority on intent, so
+  the invariant "any substantive rework flows through the spec" holds.
+  Cheap companion: at gate-synthesis time, have the test author emit its
+  interpretation assumptions into the PR artifact/card so humans catch
+  misreadings before the loop even starts.
 - Container-per-run isolation (currently subprocess + worktree).
 - JIRA connector for production (same 5 statuses, Automation rule → webhook).
 - Secrets to Vault; GitHub App everywhere (kill the PAT).
