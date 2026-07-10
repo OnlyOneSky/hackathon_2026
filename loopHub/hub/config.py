@@ -32,6 +32,7 @@ class Config:
     webhook_secret: str
     taiga_token: str
     teams: dict[str, Team] = field(default_factory=dict)
+    slack_users: dict[str, str] = field(default_factory=dict)   # taiga username -> Slack ID
 
     def team_for_project(self, project_id: int) -> Team | None:
         for t in self.teams.values():
@@ -60,4 +61,5 @@ def load(config_path: Path | None = None, repos_path: Path | None = None) -> Con
         webhook_secret=os.environ.get("LOOPHUB_WEBHOOK_SECRET", ""),
         taiga_token=os.environ.get("LOOPHUB_TAIGA_TOKEN", ""),
         teams=teams,
+        slack_users=dict(cfg.get("slack_users", {})),
     )

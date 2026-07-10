@@ -93,7 +93,7 @@ def spec_draft_worker(cfg: Config, queue: JobQueue, taiga: TaigaClient,
             log.info("spec_draft: story %s spec v%s written, moved to Spec Review",
                      story_id, version)
             from .slack import spec_ready
-            spec_ready(cfg.taiga_base_url, story, reviewer, version)
+            spec_ready(cfg.taiga_base_url, story, reviewer, version, cfg.slack_users)
             queue.finish(job["id"], ok=True)
         except ValidationError as e:
             msg = f"🤖 規格產生失敗（驗證未通過）：{e}。卡片留在 Spec Drafting，請人工處理。"

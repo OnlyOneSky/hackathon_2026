@@ -41,3 +41,12 @@ def test_notify_failure_never_raises(monkeypatch):
 
     monkeypatch.setattr(slack.httpx, "post", boom)
     slack.notify("hello")   # must not raise
+
+
+def test_mention_prefers_assignee_then_reviewer():
+    users = {"admin": "U1", "azhe": "U2"}
+    story_assigned = {"assigned_to_extra_info": {"username": "azhe"}}
+    assert slack.mention_for(story_assigned, users, "admin") == "<@U2>"
+    story_unassigned = {"assigned_to_extra_info": None}
+    assert slack.mention_for(story_unassigned, users, "admin") == "<@U1>"
+    assert slack.mention_for(story_unassigned, {}, "admin") == "@admin"

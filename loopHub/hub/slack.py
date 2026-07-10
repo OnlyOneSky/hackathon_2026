@@ -39,17 +39,35 @@ def notify(text: str) -> None:
         log.exception("slack notify failed")
 
 
-def spec_ready(base_url: str, story: dict, reviewer: str, version: int) -> None:
+def mention_for(story: dict, slack_users: dict[str, str], fallback: str) -> str:
+    """<@Uxxx> for the card's assignee if mapped, else for the fallback
+    reviewer if mapped, else a plain-text @name (no ping)."""
+    assignee = (story.get("assigned_to_extra_info") or {}).get("username")
+    for name in (assignee, fallback):
+        if name and name in slack_users:
+            return f"<@{slack_users[name]}>"
+    return f"@{assignee or fallback}"
+
+
+def spec_ready(base_url: str, story: dict, reviewer: str, version: int,
+               slack_users: dict[str, str] | None = None) -> None:
+    who = mention_for(story, slack_users or {}, reviewer)
     notify(f"📝 *Spec v{version} 待審查* — <{_card_url(base_url, story)}|#{story.get('ref')} "
-           f"{story.get('subject', '')}>\n@{reviewer} 請至看板審查並核准（拖至 Dev）。")
+           f"{story.get('subject', '')}>\n{who} 請至看板審查並核准（拖至 Dev）。")
 
 
-def loop_converged(base_url: str, story: dict, run_id: str, artifact: str | None) -> None:
+def loop_converged(base_url: str, story: dict, run_id: str, artifact: str | None,
+                   slack_users: dict[str, str] | None = None,
+                   reviewer: str = "") -> None:
+    who = mention_for(story, slack_users or {}, reviewer)
     notify(f"✅ *Loop 收斂，PR 待人工審查* — <{_card_url(base_url, story)}|#{story.get('ref')} "
-           f"{story.get('subject', '')}>\nrun `{run_id}`"
+           f"{story.get('subject', '')}>\n{who} run `{run_id}`"
            + (f" · artifact: `{artifact}`" if artifact else ""))
 
 
-def loop_escalated(base_url: str, story: dict, run_id: str, reason: str) -> None:
+def loop_escalated(base_url: str, story: dict, run_id: str, reason: str,
+                   slack_users: dict[str, str] | None = None,
+                   reviewer: str = "") -> None:
+    who = mention_for(story, slack_users or {}, reviewer)
     notify(f"🚨 *Loop 升級處理，需要人工介入* — <{_card_url(base_url, story)}|#{story.get('ref')} "
-           f"{story.get('subject', '')}>\nrun `{run_id}` · {reason[:200]}")
+           f"{story.get('subject', '')}>\n{who} run `{run_id}` · {reason[:200]}")

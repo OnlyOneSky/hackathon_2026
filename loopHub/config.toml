@@ -20,3 +20,8 @@ port = 8400
 
 [queue]
 db_path = "loop-hub.sqlite3"
+
+# Taiga username -> Slack member ID. Used to @-mention the card's assignee
+# (fallback: the reviewer) in human-gate notifications.
+[slack_users]
+admin = "U06L3F1V6B0"

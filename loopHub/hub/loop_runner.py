@@ -88,7 +88,8 @@ def run_loop_for_job(cfg: Config, taiga: TaigaClient,
         taiga.move_with_comment(story_id, ids["pr_done"], comment)
         log.info("loop_run %s converged; story %s -> PR-Done", run_id, story_id)
         from .slack import loop_converged
-        loop_converged(cfg.taiga_base_url, taiga.get_story(story_id), run_id, artifact)
+        loop_converged(cfg.taiga_base_url, taiga.get_story(story_id), run_id, artifact,
+                       cfg.slack_users, 'admin')
     else:
         # move ⑦: Dev → Spec Review with the failure report
         tail = proc.stdout[-1500:]
@@ -99,7 +100,7 @@ def run_loop_for_job(cfg: Config, taiga: TaigaClient,
         log.info("loop_run %s escalated; story %s -> Spec Review", run_id, story_id)
         from .slack import loop_escalated
         loop_escalated(cfg.taiga_base_url, taiga.get_story(story_id), run_id,
-                       outcome or status)
+                       outcome or status, cfg.slack_users, 'admin')
 
 
 def _load_state(engine_runs: Path, before: set[str]) -> dict | None:
