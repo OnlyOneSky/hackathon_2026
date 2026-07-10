@@ -45,6 +45,27 @@ class TaigaClient:
         r.raise_for_status()
         return r.json()
 
+    def add_tag(self, story_id: int, tag: str, color: str = "#e44057") -> dict:
+        """Show a colored tag on the board card (visual 'agent working' cue)."""
+        s = self.get_story(story_id)
+        tags = [t for t in (s.get("tags") or [])]
+        if not any(t[0] == tag for t in tags):
+            tags.append([tag, color])
+        r = self.c.patch(f"/api/v1/userstories/{story_id}", json={
+            "version": s["version"], "tags": tags,
+        })
+        r.raise_for_status()
+        return r.json()
+
+    def remove_tag(self, story_id: int, tag: str) -> dict:
+        s = self.get_story(story_id)
+        tags = [t for t in (s.get("tags") or []) if t[0] != tag]
+        r = self.c.patch(f"/api/v1/userstories/{story_id}", json={
+            "version": s["version"], "tags": tags,
+        })
+        r.raise_for_status()
+        return r.json()
+
     def comment(self, story_id: int, text: str) -> dict:
         s = self.get_story(story_id)
         r = self.c.patch(f"/api/v1/userstories/{story_id}", json={

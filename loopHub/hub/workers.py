@@ -66,6 +66,12 @@ def spec_draft_worker(cfg: Config, queue: JobQueue, taiga: TaigaClient,
             continue
         story_id = job["story_id"]
         try:
+            # visual cue on the board: red tag + comment while the agent works
+            try:
+                taiga.add_tag(story_id, "ai-drafting")
+                taiga.comment(story_id, "🤖 規格代理人開始草擬規格…")
+            except Exception:                             # noqa: BLE001
+                log.warning("could not set ai-drafting tag on story %s", story_id)
             story = taiga.get_story(story_id)
             project_id = story["project"]
             repo = extract_repo(taiga, cfg, project_id, story_id, attr_ids)
@@ -90,6 +96,10 @@ def spec_draft_worker(cfg: Config, queue: JobQueue, taiga: TaigaClient,
             )
             review_id = status_ids[project_id]["spec_review"]
             taiga.write_spec_and_move(story_id, spec, review_id, reviewer, version)
+            try:
+                taiga.remove_tag(story_id, "ai-drafting")
+            except Exception:                             # noqa: BLE001
+                log.warning("could not remove ai-drafting tag on story %s", story_id)
             log.info("spec_draft: story %s spec v%s written, moved to Spec Review",
                      story_id, version)
             from .slack import spec_ready
@@ -97,12 +107,21 @@ def spec_draft_worker(cfg: Config, queue: JobQueue, taiga: TaigaClient,
             queue.finish(job["id"], ok=True)
         except ValidationError as e:
             msg = f"🤖 規格產生失敗（驗證未通過）：{e}。卡片留在 Spec Drafting，請人工處理。"
+            _safe_untag(taiga, story_id)
             _safe_comment(taiga, story_id, msg)
             queue.finish(job["id"], ok=False, error=str(e))
         except Exception as e:                                    # noqa: BLE001
             log.exception("spec_draft: story %s failed", story_id)
+            _safe_untag(taiga, story_id)
             _safe_comment(taiga, story_id, f"🤖 規格產生失敗：{e}")
             queue.finish(job["id"], ok=False, error=str(e))
+
+
+def _safe_untag(taiga: TaigaClient, story_id: int) -> None:
+    try:
+        taiga.remove_tag(story_id, "ai-drafting")
+    except Exception:                                             # noqa: BLE001
+        log.warning("could not remove ai-drafting tag on story %s", story_id)
 
 
 def _safe_comment(taiga: TaigaClient, story_id: int, text: str) -> None:
