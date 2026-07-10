@@ -1,9 +1,9 @@
 # Runbook — bring the whole demo up on a different computer
 
-Code travels in git; the Taiga snapshot travels in the **`taiga-backup/`
-folder, which is NOT in git** (it holds `.env` secrets and the DB dump) —
-copy it to the new machine yourself (AirDrop / USB / scp). It lives at the
-old machine's project root: `…/Hackathon 2026/taiga-backup/`.
+Everything travels in git, including `taiga-backup/` (demo-grade secrets,
+private repo — owner's call). One exception: the **Slack bot token** is
+redacted from `taiga-backup/loophub.env` (GitHub push protection blocks it);
+re-paste it into `loopHub/.env` on the new machine from api.slack.com/apps.
 
 Two paths: **A. Restore the exact current board** (recommended — keeps all
 cards/history/timings) or **B. Fresh provision** (blank boards; follow
@@ -16,7 +16,7 @@ cards/history/timings) or **B. Fresh provision** (blank boards; follow
 | `taiga-db.sql` | full Postgres dump — all 3 boards, cards, comments, webhooks, users (taken 2026-07-10 17:14) |
 | `taiga-media.tar.gz` | Taiga media volume (avatars/attachments) |
 | `taiga-docker.env` | the `.env` for taiga-docker — **SECRET_KEY must match the DB dump**, do not regenerate |
-| `loophub.env` | loop-hub's `.env` (webhook secret, loop-bot creds, Slack token/channel) |
+| `loophub.env` | loop-hub's `.env` (webhook secret, loop-bot creds, Slack channel) — **Slack token is redacted** (GitHub push protection); re-paste it from api.slack.com/apps after copying |
 | `DEMO-CREDENTIALS.md` | all logins/URLs in one sheet |
 
 ## Path A — restore (≈30 min, mostly downloads)
