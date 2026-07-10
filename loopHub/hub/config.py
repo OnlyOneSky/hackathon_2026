@@ -59,7 +59,18 @@ def load(config_path: Path | None = None, repos_path: Path | None = None) -> Con
         port=int(cfg["server"]["port"]),
         queue_db_path=cfg["queue"]["db_path"],
         webhook_secret=os.environ.get("LOOPHUB_WEBHOOK_SECRET", ""),
-        taiga_token=os.environ.get("LOOPHUB_TAIGA_TOKEN", ""),
+        taiga_token=_resolve_token(cfg["taiga"]["base_url"]),
         teams=teams,
         slack_users=dict(cfg.get("slack_users", {})),
     )
+
+
+def _resolve_token(base_url: str) -> str:
+    """Prefer minting a fresh token from LOOPHUB_TAIGA_USER/PASSWORD — auth
+    tokens expire, credentials don't. Falls back to a static token."""
+    user = os.environ.get("LOOPHUB_TAIGA_USER", "")
+    password = os.environ.get("LOOPHUB_TAIGA_PASSWORD", "")
+    if user and password:
+        from .taiga import auth_token
+        return auth_token(base_url, user, password)
+    return os.environ.get("LOOPHUB_TAIGA_TOKEN", "")

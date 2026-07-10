@@ -143,6 +143,10 @@ def reconciliation_poller(app_state, cfg: config_mod.Config, stop: threading.Eve
                 r = taiga.c.get("/api/v1/userstories",
                                 params={"project": team.taiga_project,
                                         "status": drafting_id})
+                if r.status_code != 200:
+                    log.warning("poller: story list failed (%s) for project %s",
+                                r.status_code, team.taiga_project)
+                    continue
                 for us in r.json():
                     story = taiga.get_story(us["id"])   # GET fallback (no payload in hand)
                     if story["description"].startswith("---"):
